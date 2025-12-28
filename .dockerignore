@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output (we build inside Docker)
+dist/
+
+# Development files
+.git/
+.gitignore
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files (not needed in production image)
+**/*.test.ts
+**/*.test.tsx
+jest.config.cjs
+jest.setup.ts
+tsconfig.jest.json
+coverage/
+
+# Documentation
+README.md
+*.md
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

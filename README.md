@@ -195,6 +195,26 @@ npm test -- src/types/game.test.ts
 
 ---
 
+## Deployment
+
+### Docker
+
+```bash
+# Build the image
+docker build -t conways-game-of-life .
+
+# Run the container
+docker run -p 8080:80 conways-game-of-life
+```
+
+The application will be available at `http://localhost:8080`
+
+### Static Hosting
+
+The `dist/` folder after `npm run build` can be deployed to any static hosting service (Netlify, Vercel, GitHub Pages, S3, etc.).
+
+---
+
 ## Tech Stack
 
 - **React 19** - UI framework
