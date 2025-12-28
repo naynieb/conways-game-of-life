@@ -8,8 +8,10 @@ A React + TypeScript implementation of [Conway's Game of Life](https://en.wikipe
 - [Features](#features)
 - [Getting Started](#getting-started)
 - [Architecture](#architecture)
+- [Persistence](#persistence)
 - [Assumptions](#assumptions)
 - [Trade-offs](#trade-offs)
+- [Descoped Features](#descoped-features)
 - [Edge Cases Handled](#edge-cases-handled)
 - [Testing](#testing)
 - [Deployment](#deployment)
@@ -35,6 +37,7 @@ Conway's Game of Life is a zero-player game that simulates cellular evolution on
 - **Simulation Controls**: Play, pause, and step through generations
 - **Time Travel**: Undo/redo to navigate through generation history
 - **Import Patterns**: Load patterns from JSON files
+- **Save/Load Boards**: Persist boards locally with unique IDs (IndexedDB/localStorage)
 - **Auto-Detection**: Automatically detects extinction, stable patterns, and generation limits
 - **Configurable Limits**: Adjust maximum generations via slider
 - **Responsive UI**: Modern dark theme with visual feedback
@@ -96,19 +99,26 @@ npm run lint
 
 ```
 src/
-├── components/          # React UI components
-│   ├── App.tsx          # Root application component
-│   ├── GameBoard.tsx    # Main game container with controls
-│   ├── Grid.tsx         # Grid renderer
-│   └── Cell.tsx         # Individual cell
+├── components/           # React UI components
+│   ├── App.tsx           # Root application component
+│   ├── GameBoard.tsx     # Main game container with controls
+│   ├── Grid.tsx          # Grid renderer
+│   ├── Cell.tsx          # Individual cell
+│   ├── SaveBoardModal.tsx # Modal for naming saved boards
+│   └── BoardList.tsx     # Dropdown for loading saved boards
 ├── hooks/
-│   └── useGameOfLife.ts # Core game state management hook
+│   ├── useGameOfLife.ts  # Core game state management hook
+│   └── useBoardStorage.ts # Board persistence hook
+├── storage/
+│   └── boardStorage.ts   # IndexedDB/localStorage abstraction
 ├── types/
-│   └── game.ts          # Type definitions and pure game logic
+│   ├── game.ts           # Game type definitions and pure logic
+│   └── storage.ts        # Storage type definitions
 ├── config/
-│   └── gameConfig.ts    # Centralized configuration constants
+│   └── gameConfig.ts     # Centralized configuration constants
 └── utils/
-    └── validation.ts    # Input validation utilities
+    ├── validation.ts     # Input validation utilities
+    └── uuid.ts           # UUID generation utility
 ```
 
 ### Design Decisions
@@ -120,6 +130,38 @@ src/
 3. **History as State**: Full generation history is stored to enable time-travel (undo/redo), with configurable limits to prevent memory issues
 
 4. **Memoized Cells**: Individual `Cell` components are wrapped in `React.memo` to prevent unnecessary re-renders
+
+5. **Storage Abstraction**: Persistence layer uses IndexedDB with localStorage fallback for broad browser support
+
+---
+
+## Persistence
+
+The application supports saving and loading game boards with the following features:
+
+### Storage Implementation
+
+- **Primary**: IndexedDB for better performance and larger storage capacity
+- **Fallback**: localStorage for browsers without IndexedDB support
+- **Data Model**: Each saved board includes:
+  - `id`: Unique UUID v4 identifier
+  - `name`: User-provided name
+  - `grid`: The 2D boolean array representing cell states
+  - `createdAt`: Timestamp when first saved
+  - `updatedAt`: Timestamp when last modified
+
+### Usage
+
+- **Save**: Click "Save" or press `Ctrl+S` to save the current board with a name
+- **Load**: Click "Load" to see all saved boards and select one to load
+- **Delete**: Remove saved boards from the load dropdown
+
+### Board IDs
+
+Each saved board is assigned a unique UUID v4 identifier. This ID is:
+- Generated using `crypto.randomUUID()` (with fallback for older browsers)
+- Displayed in the UI when a board is loaded
+- Used internally for load/update/delete operations
 
 ---
 
@@ -137,6 +179,8 @@ src/
 
 6. **JSON Import Format**: Imported patterns must be valid JSON arrays of boolean/numeric (0/1) 2D arrays
 
+7. **Local Storage Only**: Board persistence is local to the browser; data is not synced across devices
+
 ---
 
 ## Trade-offs
@@ -147,7 +191,33 @@ src/
 | Boolean 2D arrays | Simple, readable code | Less memory-efficient than typed arrays |
 | Re-render entire grid | Simpler implementation | Less efficient than diff-based updates |
 | Finite bounded grid | Predictable behavior | Patterns may interact with edges |
-| Client-side only | No server required | Cannot persist state across sessions |
+| IndexedDB + localStorage | Persistence across sessions, broad browser support | Data limited to single browser/device |
+
+---
+
+## Descoped Features
+
+The following features were explicitly descoped from this implementation:
+
+### API Endpoints
+
+**Status**: Explicitly descoped
+
+Server-side API endpoints for board persistence were not implemented. The application uses client-side storage (IndexedDB/localStorage) instead.
+
+**Rationale**:
+- Keeps the application simple and self-contained
+- No server infrastructure required
+- Instant save/load without network latency
+- Works offline
+- Aligns with job description
+
+**Future Consideration**: If multi-device sync or sharing features are needed, a backend API could be added with endpoints like:
+- `POST /api/boards` - Create a new board
+- `GET /api/boards` - List all boards
+- `GET /api/boards/:id` - Get a specific board
+- `PUT /api/boards/:id` - Update a board
+- `DELETE /api/boards/:id` - Delete a board
 
 ---
 
@@ -169,6 +239,10 @@ Stepping on an empty grid correctly produces another empty grid.
 - Invalid JSON files display a user-friendly error
 - Non-array data is rejected
 - Grids exceeding maximum dimensions are rejected with guidance
+
+### Storage Fallback
+- If IndexedDB is unavailable, automatically falls back to localStorage
+- Graceful error handling for storage failures
 
 ---
 
