@@ -6,14 +6,9 @@ export type ValidationResult<T> =
   | { success: false; error: string };
 
 /**
- * Validates that a value is a valid 2D boolean grid.
- * Accepts arrays of booleans or numbers (0/1) and converts to booleans.
- * 
- * @param data - Unknown data to validate
- * @returns ValidationResult with the validated Grid or an error message
+ * Check if data is a non-empty array.
  */
-export function validateGridImport(data: unknown): ValidationResult<Grid> {
-  // TODO: extract validation logic into separate functions
+function validateIsNonEmptyArray(data: unknown): ValidationResult<unknown[]> {
   if (!Array.isArray(data)) {
     return {
       success: false,
@@ -28,64 +23,107 @@ export function validateGridImport(data: unknown): ValidationResult<Grid> {
     };
   }
 
-  if (data.length > GRID_CONFIG.maxRows) {
+  return { success: true, data };
+}
+
+/**
+ * Check if row count is within configured limits.
+ */
+function validateRowCount(rows: unknown[]): ValidationResult<void> {
+  if (rows.length > GRID_CONFIG.maxRows) {
     return {
       success: false,
-      error: `Grid too large: maximum ${GRID_CONFIG.maxRows} rows allowed, got ${data.length}`,
+      error: `Grid too large: maximum ${GRID_CONFIG.maxRows} rows allowed, got ${rows.length}`,
     };
+  }
+
+  return { success: true, data: undefined };
+}
+
+/**
+ * Validate a single row structure: must be a non-empty array with consistent column count.
+ */
+function validateRow(
+  row: unknown,
+  rowIndex: number,
+  expectedCols: number | null
+): ValidationResult<{ cols: number }> {
+  if (!Array.isArray(row)) {
+    return {
+      success: false,
+      error: `Invalid format: row ${rowIndex} is not an array`,
+    };
+  }
+
+  if (row.length === 0) {
+    return {
+      success: false,
+      error: `Invalid format: row ${rowIndex} cannot be empty`,
+    };
+  }
+
+  if (expectedCols !== null && row.length !== expectedCols) {
+    return {
+      success: false,
+      error: `Invalid format: inconsistent row lengths (row 0 has ${expectedCols} columns, row ${rowIndex} has ${row.length})`,
+    };
+  }
+
+  if (row.length > GRID_CONFIG.maxCols) {
+    return {
+      success: false,
+      error: `Grid too large: maximum ${GRID_CONFIG.maxCols} columns allowed, got ${row.length}`,
+    };
+  }
+
+  return { success: true, data: { cols: row.length } };
+}
+
+/**
+ * Convert an array of values to booleans.
+ * Accepts booleans, numbers (0/1), or any truthy/falsy values.
+ */
+function convertRowToBooleans(row: unknown[]): boolean[] {
+  return row.map((cell) => {
+    if (typeof cell === 'boolean') {
+      return cell;
+    }
+    if (typeof cell === 'number') {
+      return cell !== 0;
+    }
+    return Boolean(cell);
+  });
+}
+
+/**
+ * Validates that a value is a valid 2D boolean grid.
+ * Accepts arrays of booleans or numbers (0/1) and converts to booleans.
+ * 
+ * @param data - Unknown data to validate
+ * @returns ValidationResult with the validated Grid or an error message
+ */
+export function validateGridImport(data: unknown): ValidationResult<Grid> {
+  const arrayResult = validateIsNonEmptyArray(data);
+  if (!arrayResult.success) {
+    return arrayResult;
+  }
+
+  const rows = arrayResult.data;
+  const rowCountResult = validateRowCount(rows);
+  if (!rowCountResult.success) {
+    return rowCountResult;
   }
 
   const grid: Grid = [];
   let expectedCols: number | null = null;
 
-  for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
-    const row = data[rowIndex];
-
-    if (!Array.isArray(row)) {
-      return {
-        success: false,
-        error: `Invalid format: row ${rowIndex} is not an array`,
-      };
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const rowResult = validateRow(rows[rowIndex], rowIndex, expectedCols);
+    if (!rowResult.success) {
+      return rowResult;
     }
-
-    if (row.length === 0) {
-      return {
-        success: false,
-        error: `Invalid format: row ${rowIndex} cannot be empty`,
-      };
-    }
-
-    if (expectedCols === null) {
-      expectedCols = row.length;
-    } else if (row.length !== expectedCols) {
-      return {
-        success: false,
-        error: `Invalid format: inconsistent row lengths (row 0 has ${expectedCols} columns, row ${rowIndex} has ${row.length})`,
-      };
-    }
-
-    if (row.length > GRID_CONFIG.maxCols) {
-      return {
-        success: false,
-        error: `Grid too large: maximum ${GRID_CONFIG.maxCols} columns allowed, got ${row.length}`,
-      };
-    }
-
-    const boolRow: boolean[] = [];
-    for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      const cell = row[colIndex];
-      
-      // Accept booleans, numbers (0/1), or truthy/falsy values
-      if (typeof cell === 'boolean') {
-        boolRow.push(cell);
-      } else if (typeof cell === 'number') {
-        boolRow.push(cell !== 0);
-      } else {
-        boolRow.push(Boolean(cell));
-      }
-    }
-
-    grid.push(boolRow);
+    expectedCols = rowResult.data.cols;
+    grid.push(convertRowToBooleans(rows[rowIndex] as unknown[]));
   }
 
   return { success: true, data: grid };
