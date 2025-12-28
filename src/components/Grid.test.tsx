@@ -62,4 +62,3 @@ describe('Grid', () => {
     expect(cells.length).toBe(0);
   });
 });
-

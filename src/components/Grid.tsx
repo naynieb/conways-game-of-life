@@ -7,9 +7,6 @@ interface GridProps {
   toggleCell: (row: number, col: number) => void;
 }
 
-/**
- * Renders the grid of cells.
- */
 export function Grid({ grid, toggleCell }: GridProps) {
   const cols = grid[0]?.length ?? 0;
 
@@ -23,9 +20,13 @@ export function Grid({ grid, toggleCell }: GridProps) {
       className="inline-grid gap-0 bg-zinc-950 p-2 rounded-lg border border-zinc-800 select-none"
       style={{
         gridTemplateColumns: `repeat(${cols}, 1rem)`,
+        // CSS containment for improved rendering performance
+        contain: 'layout style paint',
       }}
       role="grid"
       aria-label="Game of Life grid"
+      aria-rowcount={grid.length}
+      aria-colcount={cols}
     >
       {grid.map((row, rowIndex) =>
         row.map((alive, colIndex) => (

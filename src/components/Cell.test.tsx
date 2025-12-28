@@ -26,4 +26,3 @@ describe('Cell', () => {
     expect(screen.getByRole('gridcell')).toBeDefined();
   });
 });
-

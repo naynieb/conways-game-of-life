@@ -9,17 +9,18 @@ describe('GameBoard', () => {
 
   test('renders the Clear button', () => {
     render(<GameBoard />);
-    expect(screen.getByRole('button', { name: 'Clear' })).toBeDefined();
+    expect(screen.getByRole('button', { name: /clear/i })).toBeDefined();
   });
 
-  test('renders the Import button', () => {
+  test('renders the Import label', () => {
     render(<GameBoard />);
     expect(screen.getByText('Import')).toBeDefined();
   });
 
   test('renders the generation counter starting at 0', () => {
     render(<GameBoard />);
-    expect(screen.getByText(/Generation: 0/)).toBeDefined();
+    expect(screen.getByText(/Generation:/)).toBeDefined();
+    expect(screen.getByText('0')).toBeDefined();
   });
 
   test('renders the grid', () => {
@@ -52,7 +53,7 @@ describe('GameBoard', () => {
     expect(cells[2].getAttribute('aria-label')).toBe('alive');
 
     // Click Clear
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    fireEvent.click(screen.getByRole('button', { name: /clear/i }));
 
     // All cells should be dead now
     const updatedCells = screen.getAllByRole('gridcell');
@@ -61,9 +62,30 @@ describe('GameBoard', () => {
     }
   });
 
-  test('renders helper text', () => {
+  test('renders helper text with keyboard shortcuts', () => {
     render(<GameBoard />);
-    expect(screen.getByText('Click cells to toggle')).toBeDefined();
+    expect(screen.getByText(/Click cells to toggle/)).toBeDefined();
+    expect(screen.getByText(/Space to play\/pause/)).toBeDefined();
+  });
+
+  test('renders play button initially', () => {
+    render(<GameBoard />);
+    expect(screen.getByRole('button', { name: /play simulation/i })).toBeDefined();
+  });
+
+  test('renders undo and redo buttons', () => {
+    render(<GameBoard />);
+    expect(screen.getByRole('button', { name: /undo/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /redo/i })).toBeDefined();
+  });
+
+  test('renders step button', () => {
+    render(<GameBoard />);
+    expect(screen.getByRole('button', { name: /step forward/i })).toBeDefined();
+  });
+
+  test('renders max generations slider', () => {
+    render(<GameBoard />);
+    expect(screen.getByLabelText(/max generations/i)).toBeDefined();
   });
 });
-
