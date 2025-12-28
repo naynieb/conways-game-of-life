@@ -1,6 +1,7 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { useGameOfLife } from '../hooks/useGameOfLife';
 import { useBoardStorage } from '../hooks/useBoardStorage';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { Grid } from './Grid';
 import { ToastContainer } from './Toast';
 import { SaveBoardModal } from './SaveBoardModal';
@@ -129,63 +130,24 @@ export function GameBoard() {
   /**
    * Handle keyboard shortcuts.
    */
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Ignore if user is typing in an input or modal is open
-      if (
-        event.target instanceof HTMLInputElement || 
-        event.target instanceof HTMLTextAreaElement ||
-        isSaveModalOpen
-      ) {
-        return;
-      }
-
-      switch (event.key) {
-        case ' ':
-          event.preventDefault();
-          if (conclusionReason && !isPlaying) return;
-          if (isPlaying) {
-            pause();
-          } else {
-            play();
-          }
-          break;
-        case 'ArrowRight':
-          event.preventDefault();
-          if (!isPlaying && !conclusionReason) step();
-          break;
-        case 'ArrowLeft':
-          event.preventDefault();
-          if (canUndo) undo();
-          break;
-        case 'ArrowUp':
-          event.preventDefault();
-          if (canRedo) redo();
-          break;
-        case 'Escape':
-          event.preventDefault();
-          pause();
-          break;
-        case 'c':
-        case 'C':
-          if (!event.ctrlKey && !event.metaKey) {
-            event.preventDefault();
-            handleClear();
-          }
-          break;
-        case 's':
-        case 'S':
-          if (event.ctrlKey || event.metaKey) {
-            event.preventDefault();
-            setIsSaveModalOpen(true);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, conclusionReason, canUndo, canRedo, isSaveModalOpen, play, pause, step, undo, redo, handleClear]);
+  useKeyboardShortcuts(
+    {
+      isPlaying,
+      conclusionReason,
+      canUndo,
+      canRedo,
+      isModalOpen: isSaveModalOpen,
+    },
+    {
+      play,
+      pause,
+      step,
+      undo,
+      redo,
+      onClear: handleClear,
+      onSave: () => setIsSaveModalOpen(true),
+    }
+  );
 
   const currentBoard = savedBoards.find(b => b.id === currentBoardId);
 
